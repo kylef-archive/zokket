@@ -55,11 +55,6 @@ class SocketDelegate(object):
         pass
 
 class TCPSocket(object):
-    CRLF_data = 0x0D0A
-    CR_data = 0x0D
-    LF_data = 0x0A
-    zero_data = 0x00
-    
     def __init__(self, delegate=None):
         self.delegate = delegate
         self.socket = None
@@ -171,6 +166,10 @@ class TCPSocket(object):
     
     # Reading
     
+    def read_data(self, data):
+        if hasattr(self.delegate, 'socket_read_data'):
+            self.delegate.socket_read_data(self, data)
+    
     def dequeue_buffer(self):
         if self.read_until_data != None:
             index = self.read_buffer.find(self.read_until_data)
@@ -180,22 +179,17 @@ class TCPSocket(object):
                 data = self.read_buffer[:index + read_until_data_length]
                 self.read_buffer = self.read_buffer[index + read_until_data_length:]
                 
-                if hasattr(self.delegate, 'socket_read_data'):
-                    self.delegate.socket_read_data(self, data)
-                
+                self.read_data(data)
                 self.dequeue_buffer()
         elif self.read_until_length != None:
             if len(self.read_buffer) >= self.read_until_length:
                 data = self.read_buffer[:self.read_until_length]
                 self.read_buffer = self.read_buffer[self.read_until_length:]
                 
-                if hasattr(self.delegate, 'socket_read_data'):
-                    self.delegate.socket_read_data(self, data)
-                
+                self.read_data(data)
                 self.dequeue_buffer()
         else:
-            if hasattr(self.delegate, 'socket_read_data'):
-                self.delegate.socket_read_data(self, self.read_buffer)
+            self.read_data(self.read_buffer)
             self.read_buffer = ''
     
     def bytes_availible(self):
