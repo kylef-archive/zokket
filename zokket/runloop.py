@@ -14,7 +14,7 @@ class RunLoop(object):
         except KeyboardInterrupt:
             self.running = False
         
-        [s.close() for s in self.sockets]
+        [s.close() for s in self.sockets if s.socket]
 
 def poll(sockets, timeout=30):
     r = filter(lambda x: x.readable(), sockets)
