@@ -65,6 +65,10 @@ class TCPSocket(object):
         self.socket = None
         self.connected = False
         self.accepting = False
+        
+        self.read_until_data = None
+        self.read_until_length = None
+        self.read_buffer = ''
     
     def __str__(self):
         if self.connected:
@@ -167,6 +171,33 @@ class TCPSocket(object):
     
     # Reading
     
+    def dequeue_buffer(self):
+        if self.read_until_data != None:
+            index = self.read_buffer.find(self.read_until_data)
+            
+            if index != -1:
+                read_until_data_length = len(self.read_until_data)
+                data = self.read_buffer[:index + read_until_data_length]
+                self.read_buffer = self.read_buffer[index + read_until_data_length:]
+                
+                if hasattr(self.delegate, 'socket_read_data'):
+                    self.delegate.socket_read_data(self, data)
+                
+                self.dequeue_buffer()
+        elif self.read_until_length != None:
+            if len(self.read_buffer) >= self.read_until_length:
+                data = self.read_buffer[:self.read_until_length]
+                self.read_buffer = self.read_buffer[self.read_until_length:]
+                
+                if hasattr(self.delegate, 'socket_read_data'):
+                    self.delegate.socket_read_data(self, data)
+                
+                self.dequeue_buffer()
+        else:
+            if hasattr(self.delegate, 'socket_read_data'):
+                self.delegate.socket_read_data(self, self.read_buffer)
+            self.read_buffer = ''
+    
     def bytes_availible(self):
         try:
             data = self.socket.recv(8192)
@@ -175,8 +206,8 @@ class TCPSocket(object):
                 self.close()
                 return
             
-            if hasattr(self.delegate, 'socket_read_data'):
-                self.delegate.socket_read_data(self, data)
+            self.read_buffer += data
+            self.dequeue_buffer()
         except socket.error, e:
             if e[0] in (ECONNRESET, ENOTCONN):
                 self.close()
