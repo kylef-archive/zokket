@@ -178,7 +178,7 @@ class TCPSocket(object):
             self.socket.close()
             self.socket = None
         
-        if self.connected or self.accepting and hasattr(self.delegate, 'socket_did_disconnect'):
+        if (self.connected or self.accepting) and hasattr(self.delegate, 'socket_did_disconnect'):
             self.delegate.socket_did_disconnect(err)
         
         self.connected = False
@@ -244,16 +244,28 @@ class TCPSocket(object):
         return -1
     
     def connected_host(self):
-        return self.socket.getpeername()[0]
+        try:
+            return self.socket.getpeername()[0]
+        except socket.error:
+            return ''
     
     def connected_port(self):
-        return self.socket.getpeername()[1]
+        try:
+            return self.socket.getpeername()[1]
+        except socket.error:
+            return 0
     
     def local_host(self):
-        return self.socket.getsockname()[0]
+        try:
+            return self.socket.getsockname()[0]
+        except socket.error:
+            return ''
     
     def local_port(self):
-        return self.socket.getsockname()[1]
+        try:
+            return self.socket.getsockname()[1]
+        except socket.error:
+            return 0
     
     # Runloop Callbacks
     
