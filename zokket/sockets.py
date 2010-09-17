@@ -75,9 +75,9 @@ class TCPSocket(object):
     
     def __str__(self):
         if self.connected:
-            pass
+            return '%s:%s' % (self.connected_host(), self.connected_port())
         elif self.accepting:
-            pass
+            return '%s:%s' % (self.local_host(), self.local_port())
         
         return ''
     
