@@ -1,5 +1,6 @@
 import socket
 import os
+from zokket.timers import Timer
 
 if os.name == 'nt':
 	EWOULDBLOCK	= 10035
@@ -48,6 +49,12 @@ class SocketDelegate(object):
         """
         pass
     
+    def socket_connection_timeout(self, sock, host, port):
+        """
+        The socket timedout trying to connect to host and port.
+        """
+        pass
+    
     def socket_read_data(self, sock, data):
         """
         The socket has received data.
@@ -60,6 +67,7 @@ class TCPSocket(object):
         self.socket = None
         self.connected = False
         self.accepting = False
+        self.connect_timeout = None
         
         self.read_until_data = None
         self.read_until_length = None
@@ -110,13 +118,25 @@ class TCPSocket(object):
             self.socket.connect((host, port))
         except socket.error, e:
             if e[0] in (EINPROGRESS, EALREADY, EWOULDBLOCK):
+                if timeout:
+                    self.connect_timeout = Timer(timeout, self.connection_timeout, False, (host, port))
+                    self.connect_timeout.attach_to_runloop(self.runloop)
                 return
             raise e
         
         self.did_connect()
     
+    def connection_timeout(self, timer):
+        self.close()
+        
+        if hasattr(self.delegate, 'socket_connection_timeout'):
+            self.delegate.socket_connection_timeout(self, *timer.data)
+    
     def did_connect(self):
         self.connected = True
+        
+        if self.connect_timeout:
+            self.connect_timeout.invalidate()
         
         if hasattr(self.delegate, 'socket_did_connect'):
             self.delegate.socket_did_connect(self, self.connected_host(), self.connected_port())
@@ -154,15 +174,15 @@ class TCPSocket(object):
     # Disconnect
     
     def close(self, err=None):
-        self.connected = False
-        self.accepting = False
-        
         if self.socket != None:
             self.socket.close()
             self.socket = None
         
-        if hasattr(self.delegate, 'socket_did_disconnect'):
+        if self.connected or self.accepting and hasattr(self.delegate, 'socket_did_disconnect'):
             self.delegate.socket_did_disconnect(err)
+        
+        self.connected = False
+        self.accepting = False
     
     # Reading
     
