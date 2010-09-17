@@ -3,14 +3,24 @@ import select
 class RunLoop(object):
     def __init__(self):
         self.sockets = []
+        self.timers = []
         self.running = False
+    
+    def timeout(self):
+        try:
+            runtimes = [timer.timeout() for timer in self.timers]
+            runtimes.sort()
+            return runtimes.pop(0)
+        except:
+            return 180
     
     def run(self):
         self.running = True
         
         try:
             while self.running:
-                poll(self.sockets)
+                poll(self.sockets, self.timeout())
+                [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
         except KeyboardInterrupt:
             self.running = False
         
