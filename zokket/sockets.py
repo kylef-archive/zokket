@@ -43,6 +43,12 @@ class SocketDelegate(object):
         """
         return True
     
+    def socket_connection_refused(self, sock, host, port):
+        """
+        The connection was refused
+        """
+        pass
+    
     def socket_did_connect(self, sock, host, port):
         """
         The socket has connected with host and port.
@@ -113,6 +119,7 @@ class TCPSocket(object):
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(0)
+        self.connecting_address = (host, port)
         
         try:
             self.socket.connect((host, port))
@@ -137,6 +144,18 @@ class TCPSocket(object):
         
         if self.connect_timeout:
             self.connect_timeout.invalidate()
+        
+        # Lets make sure that this connection wasn't refused.
+        
+        try:
+            self.socket.recv(0)
+        except socket.error, e:
+            if e[0] == 61:
+                if hasattr(self.delegate, 'socket_connection_refused'):
+                    self.delegate.socket_connection_refused(self, self.connecting_address[0], self.connecting_address[1])
+                
+                self.close()
+                return
         
         if hasattr(self.delegate, 'socket_did_connect'):
             self.delegate.socket_did_connect(self, self.connected_host(), self.connected_port())
@@ -213,6 +232,9 @@ class TCPSocket(object):
             self.read_buffer = ''
     
     def bytes_availible(self):
+        if self.socket == None:
+            return
+        
         try:
             data = self.socket.recv(8192)
             
@@ -244,24 +266,36 @@ class TCPSocket(object):
         return -1
     
     def connected_host(self):
+        if self.socket == None:
+            return ''
+        
         try:
             return self.socket.getpeername()[0]
         except socket.error:
             return ''
     
     def connected_port(self):
+        if self.socket == None:
+            return 0
+        
         try:
             return self.socket.getpeername()[1]
         except socket.error:
             return 0
     
     def local_host(self):
+        if self.socket == None:
+            return ''
+        
         try:
             return self.socket.getsockname()[0]
         except socket.error:
             return ''
     
     def local_port(self):
+        if self.socket == None:
+            return 0
+        
         try:
             return self.socket.getsockname()[1]
         except socket.error:
@@ -278,6 +312,9 @@ class TCPSocket(object):
         return False
     
     def handle_read_event(self):
+        if self.socket == None:
+            return
+        
         if self.accepting:
             self.accept_from_socket()
         elif not self.connected:
@@ -287,6 +324,9 @@ class TCPSocket(object):
             self.bytes_availible()
     
     def handle_write_event(self):
+        if self.socket == None:
+            return
+        
         if not self.connected and not self.accepting:
             self.did_connect()
     
