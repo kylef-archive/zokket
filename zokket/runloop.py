@@ -10,7 +10,10 @@ class RunLoop(object):
         try:
             runtimes = [timer.timeout() for timer in self.timers]
             runtimes.sort()
-            return runtimes.pop(0)
+            timeout = runtimes.pop(0)
+            if timeout < 0.0:
+                return 0
+            return timeout
         except:
             return 180
     
