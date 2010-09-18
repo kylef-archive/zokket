@@ -31,4 +31,11 @@ class Timer(object):
             self.invalidate()
     
     def invalidate(self):
-        self.runloop.timers.remove(self)
+        self.interval = 0
+        self.repeat = False
+        self.fite_at = None
+        
+        try:
+            self.runloop.timers.remove(self)
+        except ValueError:
+            return
