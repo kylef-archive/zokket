@@ -66,6 +66,13 @@ class SocketDelegate(object):
         The socket has received data.
         """
         pass
+    
+    def socket_address_in_use(self, sock, host, port):
+        """
+        This method will be called when the address you tried to
+        accept on is already in use.
+        """
+        pass
 
 class TCPSocket(object):
     def __init__(self, delegate=None):
@@ -169,7 +176,19 @@ class TCPSocket(object):
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(0)
-        self.socket.bind((host, port))
+        
+        try:
+            self.socket.bind((host, port))
+        except socket.error, e:
+            if e[0] == 48:
+                self.close()
+                
+                if hasattr(self.delegate, 'socket_address_in_use'):
+                    self.delegate.socket_address_in_use(self, host, port)
+                
+                return
+            raise e
+        
         self.socket.listen(5)
         self.accepting = True
     
