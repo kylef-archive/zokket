@@ -217,7 +217,7 @@ class TCPSocket(object):
             self.socket = None
         
         if (self.connected or self.accepting) and hasattr(self.delegate, 'socket_did_disconnect'):
-            self.delegate.socket_did_disconnect(err)
+            self.delegate.socket_did_disconnect(self, err)
         
         self.connected = False
         self.accepting = False
