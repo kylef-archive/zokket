@@ -80,6 +80,7 @@ class TCPSocket(object):
         self.socket = None
         self.connected = False
         self.accepting = False
+        self.accepted = False
         self.connect_timeout = None
         
         self.read_until_data = None
@@ -107,6 +108,8 @@ class TCPSocket(object):
     # Configuration
     
     def configure(self):
+        self.accepted = True
+        
         if hasattr(self.delegate, 'socket_will_connect'):
             if not self.delegate.socket_will_connect(self):
                 self.close()
