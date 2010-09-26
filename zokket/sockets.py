@@ -18,7 +18,7 @@ class SocketException(Exception): pass
 class SocketDelegate(object):
     def socket_did_disconnect(self, sock, err=None):
         """
-        A socket has been closed.
+        A socket that was previously connected or listening has been closed.
         """
         pass
     
@@ -33,13 +33,14 @@ class SocketDelegate(object):
         If this method is not implemented then it will use the current runloop.
         
         This method can be implemented so the socket can run on a seperate
-        thread from the accept socket.
+        thread from the accept socket by returning a different run loop
+        running on a different thread.
         """
         return RunLoop()
     
     def socket_will_connect(self, sock):
         """
-        The socket sends this message when it is about to connect to a remote socket.
+        The socket calls this method when it is about to connect to a remote socket.
         
         Return True if the socket should continue to connect to the remote socket.
         """
@@ -71,7 +72,7 @@ class SocketDelegate(object):
     
     def socket_address_in_use(self, sock, host, port):
         """
-        This method will be called when the address you tried to
+        This method will be called if the address you tried to
         accept on is already in use.
         """
         pass
