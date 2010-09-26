@@ -105,6 +105,12 @@ class TCPSocket(object):
         
         return '<TCPSocket>'
     
+    def __del__(self):
+        self.close()
+    
+    def __nonzero__(self):
+        return (self.socket != None) and self.connected or self.accepting
+    
     # Configuration
     
     def configure(self):
