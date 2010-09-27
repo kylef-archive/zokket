@@ -16,6 +16,14 @@ else:
 class SocketException(Exception): pass
 
 class SocketDelegate(object):
+    """
+    An instance of TCPSocket will call methods on its delegate object upon
+    completing certain operations or when it encouters errors.
+    
+    All instances of TCPSocket should have a delegate that optionally responds
+    to these methods. A delegate should be seen as a connection controller.]
+    """
+    
     def socket_did_disconnect(self, sock, err=None):
         """
         A socket that was previously connected or listening has been closed.
@@ -79,6 +87,10 @@ class SocketDelegate(object):
 
 class TCPSocket(object):
     def __init__(self, delegate=None):
+        """
+        The delegate is an object which follows the SocketDelegate protocol.
+        """
+        
         self.delegate = delegate
         self.socket = None
         self.connected = False
@@ -130,6 +142,17 @@ class TCPSocket(object):
     # Connecting
     
     def connect(self, host, port, timeout=None):
+        """
+        Try to establish a connection with host and port.
+        
+        If a timeout is defined, after this timeout has been reached the TCPSocket
+        will stop trying to connect and the socket_connection_timeout
+        SocketDelegate method will be called.
+        
+        If the socket establishes the connection before the timeout socket_did_connect
+        SocketDelegate method will be called.
+        """
+        
         if not self.delegate:
             raise SocketException("Attempting to accept without a delegate. Set a delegate first.")
         
@@ -224,6 +247,10 @@ class TCPSocket(object):
     # Disconnect
     
     def close(self, err=None):
+        """
+        Disconnect or stop accepting.
+        """
+        
         if self.socket != None:
             self.socket.close()
             self.socket = None
