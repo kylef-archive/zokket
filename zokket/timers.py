@@ -1,13 +1,19 @@
 import time
+from zokket.runloop import DefaultRunloop
 
 class Timer(object):
-    def __init__(self, interval, callback, repeat=False, data=None):
+    def __init__(self, interval, callback, repeat=False, data=None, runloop=None):
         self.interval = interval
         self.callback = callback
         self.repeat = repeat
         self.data = data
         self.runloop = None
         self.update_timeout()
+        
+        if not runloop:
+            runloop = DefaultRunloop.default()
+        
+        self.attach_to_runloop(runloop)
     
     def update_timeout(self):
         self.fire_at = time.time() + self.interval
