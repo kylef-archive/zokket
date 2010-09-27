@@ -84,6 +84,14 @@ class SocketDelegate(object):
         accept on is already in use.
         """
         pass
+    
+    def socket_address_refused(self, sock, host, port):
+        """
+        This method will be called if the address you tried to
+        accept on is refused, this usually means you are trying
+        to accept on a port <1024 without root priviledges.
+        """
+        pass
 
 class TCPSocket(object):
     def __init__(self, delegate=None):
@@ -220,6 +228,13 @@ class TCPSocket(object):
                 
                 if hasattr(self.delegate, 'socket_address_in_use'):
                     self.delegate.socket_address_in_use(self, host, port)
+                
+                return
+            elif e[0] == 13:
+                self.close()
+                
+                if hasattr(self.delegate, 'socket_address_refused'):
+                    self.delegate.socket_address_refused(self, host, port)
                 
                 return
             raise e
