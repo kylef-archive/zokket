@@ -3,6 +3,7 @@ __all__ = ['SocketException', 'SocketDelegate', 'TCPSocket']
 import socket
 import os
 from zokket.timers import Timer
+from zokket.runloop import DefaultRunloop
 
 if os.name == 'nt':
 	EWOULDBLOCK	= 10035
@@ -41,7 +42,7 @@ class SocketDelegate(object):
         If this method is not implemented then it will use the current runloop.
         
         This method can be implemented so the socket can run on a seperate
-        thread from the accept socket by returning a different run loop
+        thread from the accept socket by returning a different runloop
         running on a different thread.
         """
         return RunLoop()
@@ -94,7 +95,7 @@ class SocketDelegate(object):
         pass
 
 class TCPSocket(object):
-    def __init__(self, delegate=None):
+    def __init__(self, delegate=None, runloop=None):
         """
         The delegate is an object which follows the SocketDelegate protocol.
         """
@@ -109,6 +110,11 @@ class TCPSocket(object):
         self.read_until_data = None
         self.read_until_length = None
         self.read_buffer = ''
+        
+        if not runloop:
+            runloop = DefaultRunloop.default()
+        
+        self.attach_to_runloop(runloop)
     
     def __str__(self):
         if self.connected:
