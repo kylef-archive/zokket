@@ -1,6 +1,22 @@
 import select
 
-class RunLoop(object):
+class DefaultRunloop(object):
+    @classmethod
+    def set_runloop(cls, rl):
+        cls._runloop = rl()
+    
+    @classmethod
+    def run(cls):
+        return cls.default().run()
+    
+    @classmethod
+    def default(cls):
+        if not hasattr(cls, '_runloop'):
+            cls.set_runloop(Runloop)
+        
+        return cls._runloop
+
+class Runloop(object):
     def __init__(self):
         self.sockets = []
         self.timers = []
