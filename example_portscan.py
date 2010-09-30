@@ -4,28 +4,25 @@ PRIVILEGED_PORTRANGE = range(1, 1024)
 REGISTERED_PORTRANGE = range(1024, 49151)
 
 class PortScanner(object):
-    def __init__(self, target, portrange=PRIVILEGED_PORTRANGE, simultaneous_connections=100, timeout=0.05):
+    def __init__(self, target, portrange=PRIVILEGED_PORTRANGE, simultaneous_connections=100, timeout=0.5):
         self.portrange = portrange
         self.target = target
         self.timeout = timeout
         
-        self.runloop = zokket.RunLoop()
         [self.connect() for connection in range(0, simultaneous_connections)]
-        self.runloop.run()
     
     def connect(self):
         if len(self.portrange) == 0:
-            self.runloop.running = False
+            zokket.DefaultRunloop.abort()
             return
         
         s = zokket.TCPSocket(self)
-        s.attach_to_runloop(self.runloop)
         s.connect(self.target, self.portrange.pop(0), timeout=self.timeout)
     
     def socket_did_connect(self, sock, host, port):
         print "Port %s Open." % (port)
-        self.connect()
         sock.close()
+        self.connect()
     
     def socket_connection_refused(self, sock, host, port):
         print "Port %s Closed" % (port)
@@ -36,4 +33,5 @@ class PortScanner(object):
 
 if __name__ == '__main__':
     PortScanner('127.0.0.1')
+    zokket.DefaultRunloop.run()
     print "Portscan ended"
