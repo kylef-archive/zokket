@@ -16,6 +16,10 @@ class DefaultRunloop(object):
             cls.set_runloop(Runloop)
         
         return cls._runloop
+    
+    @classmethod
+    def abort(cls):
+        cls.default().running = False
 
 class Runloop(object):
     def __init__(self):
