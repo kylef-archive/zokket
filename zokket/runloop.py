@@ -3,7 +3,7 @@ from thread import start_new_thread
 
 class DefaultRunloop(object):
     @classmethod
-    def set_runloop(cls, rl):
+    def set(cls, rl):
         cls._runloop = rl()
     
     @classmethod
@@ -13,7 +13,7 @@ class DefaultRunloop(object):
     @classmethod
     def default(cls):
         if not hasattr(cls, '_runloop'):
-            cls.set_runloop(Runloop)
+            cls.set(Runloop)
         
         return cls._runloop
     
