@@ -93,6 +93,13 @@ class SocketDelegate(object):
         to accept on a port <1024 without root priviledges.
         """
         pass
+    
+    def socket_accepting(self, sock, host, port):
+        """
+        This method will be called when a socket is successfully
+        listening on the host and port.
+        """
+        pass
 
 class TCPSocket(object):
     def __init__(self, delegate=None, runloop=None):
@@ -247,6 +254,9 @@ class TCPSocket(object):
         
         self.socket.listen(5)
         self.accepting = True
+        
+        if hasattr(self.delegate, 'socket_accepting'):
+            self.delegate.socket_accepting(self, host, port)
     
     def accept_from_socket(self):
         client, address = self.socket.accept()
