@@ -7,6 +7,10 @@ class DefaultRunloop(object):
         cls._runloop = rl()
     
     @classmethod
+    def run_in_new_thread(cls):
+        return start_new_thread(cls.default().run, (), {})
+    
+    @classmethod
     def run(cls):
         return cls.default().run()
     
@@ -66,7 +70,3 @@ class Runloop(object):
     
     def shutdown(self):
         [s.close() for s in self.sockets if s.socket]
-
-class ThreadedRunloop(Runloop):
-    def run(self):
-        start_new_thread(super(ThreadedRunloop, self).run, (), {})

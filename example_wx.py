@@ -37,11 +37,9 @@ class EchoServerFrame(wx.Frame):
         sock.send(data) # Echo data back
 
 if __name__ == '__main__':
-    zokket.DefaultRunloop.set(zokket.ThreadedRunloop) # Use a threaded runloop
-    
     app = wx.PySimpleApp()
     app.TopWindow = EchoServerFrame()
     app.TopWindow.Show()
-    zokket.DefaultRunloop.run() # Run the zokket runloop (in a thread)
+    zokket.DefaultRunloop.run_in_new_thread() # Run the zokket runloop (in a new thread)
     app.MainLoop()
     zokket.DefaultRunloop.abort() # End the zokket runloop as the mainloop has exited
