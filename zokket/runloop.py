@@ -57,14 +57,9 @@ class Runloop(object):
         
         (rlist, wlist, xlist) = select.select(r, w, e, self.timeout())
         
-        for s in xlist:
-            s.handle_except_event()
-        
-        for s in rlist:
-            s.handle_read_event()
-        
-        for s in wlist:
-            s.handle_write_event()
+        [s.handle_except_event() for s in xlist]
+        [s.handle_read_event() for s in rlist]
+        [s.handle_write_event() for s in wlist]
     
     def run_timers(self):
         [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
