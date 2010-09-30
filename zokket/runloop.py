@@ -18,6 +18,7 @@ class DefaultRunloop(object):
 
 class Runloop(object):
     def __init__(self):
+        self.poll = poll_select
         self.sockets = []
         self.timers = []
         self.running = False
@@ -38,14 +39,14 @@ class Runloop(object):
         
         try:
             while self.running:
-                poll(self.sockets, self.timeout())
+                self.poll(self.sockets, self.timeout())
                 [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
         except KeyboardInterrupt:
             self.running = False
         
         [s.close() for s in self.sockets if s.socket]
 
-def poll(sockets, timeout=30):
+def poll_select(sockets, timeout=30):
     r = filter(lambda x: x.readable(), sockets)
     w = filter(lambda x: x.writable(), sockets)
     e = filter(lambda x: x.socket != None, sockets)
