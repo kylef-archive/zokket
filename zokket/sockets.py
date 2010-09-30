@@ -189,8 +189,7 @@ class TCPSocket(object):
         except socket.error, e:
             if e[0] in (EINPROGRESS, EALREADY, EWOULDBLOCK):
                 if timeout:
-                    self.connect_timeout = Timer(timeout, self.connection_timeout, False, (host, port))
-                    self.connect_timeout.attach_to_runloop(self.runloop)
+                    self.connect_timeout = Timer(timeout, self.connection_timeout, False, (host, port), runloop=self.runloop)
                 return
             raise e
         
