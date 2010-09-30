@@ -18,7 +18,6 @@ class DefaultRunloop(object):
 
 class Runloop(object):
     def __init__(self):
-        self.poll = poll_select
         self.sockets = []
         self.timers = []
         self.running = False
@@ -39,25 +38,31 @@ class Runloop(object):
         
         try:
             while self.running:
-                self.poll(self.sockets, self.timeout())
-                [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
+                self.run_network()
+                self.run_timers()
         except KeyboardInterrupt:
             self.running = False
         
+        self.shutdown()
+    
+    def run_network(self):
+        r = filter(lambda x: x.readable(), self.sockets)
+        w = filter(lambda x: x.writable(), self.sockets)
+        e = filter(lambda x: x.socket != None, self.sockets)
+        
+        (rlist, wlist, xlist) = select.select(r, w, e, self.timeout())
+        
+        for s in xlist:
+            s.handle_except_event()
+        
+        for s in rlist:
+            s.handle_read_event()
+        
+        for s in wlist:
+            s.handle_write_event()
+    
+    def run_timers(self):
+        [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
+    
+    def shutdown(self):
         [s.close() for s in self.sockets if s.socket]
-
-def poll_select(sockets, timeout=30):
-    r = filter(lambda x: x.readable(), sockets)
-    w = filter(lambda x: x.writable(), sockets)
-    e = filter(lambda x: x.socket != None, sockets)
-    
-    (rlist, wlist, xlist) = select.select(r, w, e, timeout)
-    
-    for s in xlist:
-        s.handle_except_event()
-    
-    for s in rlist:
-        s.handle_read_event()
-    
-    for s in wlist:
-        s.handle_write_event()
