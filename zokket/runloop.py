@@ -1,4 +1,5 @@
 import select
+from thread import start_new_thread
 
 class DefaultRunloop(object):
     @classmethod
@@ -66,3 +67,7 @@ class Runloop(object):
     
     def shutdown(self):
         [s.close() for s in self.sockets if s.socket]
+
+class ThreadedRunloop(Runloop):
+    def run(self):
+        start_new_thread(super(ThreadedRunloop, self).run, (), {})
