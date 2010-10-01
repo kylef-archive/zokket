@@ -1,4 +1,4 @@
-__all__ = ['SocketException', 'SocketDelegate', 'TCPSocket']
+__all__ = ['SocketException', 'TCPSocketDelegate', 'TCPSocket']
 
 import socket
 import os
@@ -16,7 +16,7 @@ else:
 
 class SocketException(Exception): pass
 
-class SocketDelegate(object):
+class TCPSocketDelegate(object):
     """
     An instance of TCPSocket will call methods on its delegate object upon
     completing certain operations or when it encouters errors.
@@ -104,7 +104,7 @@ class SocketDelegate(object):
 class TCPSocket(object):
     def __init__(self, delegate=None, runloop=None):
         """
-        The delegate is an object which follows the SocketDelegate protocol.
+        The delegate is an object which follows the TCPSocketDelegate protocol.
         """
         
         self.delegate = delegate
@@ -168,10 +168,10 @@ class TCPSocket(object):
         
         If a timeout is defined, after this timeout has been reached the TCPSocket
         will stop trying to connect and the socket_connection_timeout
-        SocketDelegate method will be called.
+        TCPSocketDelegate method will be called.
         
         If the socket establishes the connection before the timeout socket_did_connect
-        SocketDelegate method will be called.
+        TCPSocketDelegate method will be called.
         """
         
         if not self.delegate:
