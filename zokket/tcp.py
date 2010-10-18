@@ -118,6 +118,9 @@ class TCPSocket(object):
         self.read_until_length = None
         self.read_buffer = ''
         
+        self.uploaded_bytes = 0
+        self.downloaded_bytes = 0
+        
         if not runloop:
             runloop = DefaultRunloop.default()
         
@@ -331,6 +334,7 @@ class TCPSocket(object):
                 return
             
             self.read_buffer += data
+            self.downloaded_bytes += len(data)
             self.dequeue_buffer()
         except socket.error, e:
             if e[0] in (ECONNRESET, ENOTCONN):
@@ -340,6 +344,7 @@ class TCPSocket(object):
     
     def send(self, data):
         try:
+            self.uploaded_bytes += len(data)
             return self.socket.send(data)
         except socket.error, e:
             if e[0] == EWOULDBLOCK:

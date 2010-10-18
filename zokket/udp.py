@@ -16,6 +16,9 @@ class UDPSocket(object):
         if not runloop:
             runloop = DefaultRunloop.default()
         
+        self.uploaded_bytes = 0
+        self.downloaded_bytes = 0
+        
         self.attach_to_runloop(runloop)
     
     # Configuration
@@ -30,6 +33,7 @@ class UDPSocket(object):
         self.socket.bind((host, port))
     
     def send(self, host, port, data):
+        self.uploaded_bytes += len(data)
         self.socket.sendto(data, (host, port))
     
     def close(self):
@@ -54,6 +58,7 @@ class UDPSocket(object):
     
     def handle_read_event(self):
         data, addr = self.socket.recvfrom(65565)
+        self.downloaded_bytes += len(data)
         
         if hasattr(self.delegate, 'udp_socket_read_data'):
             self.delegate.udp_socket_read_data(self, addr[0], addr[1], data)
