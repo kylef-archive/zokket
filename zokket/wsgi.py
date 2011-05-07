@@ -8,6 +8,7 @@ from zokket.tcp import TCPSocket
 class WSGIRequestHandler(object):
     def __init__(self, server, sock, data):
         self.server = server
+        self.version = self.server.request_version
         self.socket = sock
         
         self.handle_data(data)
@@ -27,16 +28,15 @@ class WSGIRequestHandler(object):
             if version[:5] != 'HTTP/':
                 self.send_error('400 BAD REQUEST', 'Bad request version (%s)' % version)
                 return
+            self.version = version
         elif len(request_words) == 2:
             [command, path] = request_words
-            version = self.server.request_version
         elif not request_words:
             return
         else:
             self.send_error('400 BAD REQUEST', 'Bad request syntax (%s)' % request_line)
             return
         
-        self.version = version
         self.environ = self.server.base_environ.copy()
         self.headers = mimetools.Message(StringIO.StringIO("\r\n".join(lines)), 0)
         self.environ['SERVER_PROTOCOL'] = version
