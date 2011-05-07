@@ -120,7 +120,7 @@ class WSGIServer(object):
         self.base_environ['SCRIPT_NAME'] = ''
     
     def socket_did_connect(self, sock, host, port):
-        sock.read_until = "\r\n\r\n"
+        sock.read_until_data = "\r\n\r\n"
     
     def socket_read_data(self, sock, data):
         WSGIRequestHandler(self, sock, data)
