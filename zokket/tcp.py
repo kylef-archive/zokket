@@ -1,6 +1,7 @@
 __all__ = ['SocketException', 'TCPSocketDelegate', 'TCPSocket']
 
 import socket
+import ssl
 import os
 from zokket.timers import Timer
 from zokket.runloop import DefaultRunloop
@@ -100,6 +101,14 @@ class TCPSocketDelegate(object):
         listening on the host and port.
         """
         pass
+    
+    def socket_did_secure(self, sock):
+        """
+        This method will be called when TLS negotiation is
+        complete, and the rest of the connection will be
+        secure. (Unless sock.stop_tls is called).
+        """
+        pass
 
 class TCPSocket(object):
     def __init__(self, delegate=None, runloop=None):
@@ -113,6 +122,8 @@ class TCPSocket(object):
         self.accepting = False
         self.accepted = False
         self.connect_timeout = None
+        
+        self.tls_handshake_stage = None
         
         self.read_until_data = None
         self.read_until_length = None
@@ -162,6 +173,31 @@ class TCPSocket(object):
     def attach_to_runloop(self, runloop):
         self.runloop = runloop
         self.runloop.sockets.append(self)
+    
+    # TLS
+    
+    def start_tls(self, keyfile=None, certfile=None, cert_reqs=ssl.CERT_NONE, \
+            ca_certs=None, version=ssl.PROTOCOL_SSLv23):
+        if self.socket is None:
+            return
+        
+        self.socket = ssl.SSLSocket(self.socket, keyfile=keyfile, \
+                                    certfile=certfile, cert_reqs=cert_reqs, \
+                                    ca_certs=ca_certs, ssl_version=version, \
+                                    server_side=self.accepted, \
+                                    do_handshake_on_connect=False)
+        self.tls_handshake()
+    
+    def stop_tls(self):
+        self.socket = self.socket.unwrap()
+    
+    def tls_cipher(self):
+        if isinstance(self.socket, ssl.SSLSocket):
+            return self.socket.cipher()
+    
+    def tls_peer_certificate(self, binary_form=False):
+        if isinstance(self.socket, ssl.SSLSocket):
+            return self.socket.getpeercert(binary_form)
     
     # Connecting
     
@@ -277,6 +313,21 @@ class TCPSocket(object):
         
         new_sock.configure()
     
+    def tls_handshake(self):
+        try:
+            self.socket.do_handshake()
+            self.tls_handshake_stage = None
+            
+            if hasattr(self.delegate, 'socket_did_secure'):
+                self.delegate.socket_did_secure(self)
+        except ssl.SSLError, err:
+            if err.args[0] == ssl.SSL_ERROR_WANT_READ:
+                self.tls_handshake_stage = 1
+            elif err.args[0] == ssl.SSL_ERROR_WANT_WRITE:
+                self.tls_handshake_stage = 2
+            else:
+                raise
+    
     # Disconnect
     
     def close(self, err=None):
@@ -285,6 +336,9 @@ class TCPSocket(object):
         """
         
         if self.socket != None:
+            if isinstance(self.socket, ssl.SSLSocket):
+                self.stop_tls()
+            
             self.socket.close()
             self.socket = None
         
@@ -327,7 +381,10 @@ class TCPSocket(object):
             return
         
         try:
-            data = self.socket.recv(8192)
+            if isinstance(self.socket, ssl.SSLSocket):
+                data = self.socket.read(8192)
+            else:
+                data = self.socket.recv(8192)
             
             if not data:
                 self.close()
@@ -345,6 +402,8 @@ class TCPSocket(object):
     def send(self, data):
         try:
             self.uploaded_bytes += len(data)
+            if isinstance(self.socket, ssl.SSLSocket):
+                return self.socket.write(data)
             return self.socket.send(data)
         except socket.error, e:
             if e[0] == EWOULDBLOCK:
@@ -400,15 +459,20 @@ class TCPSocket(object):
         return self.socket != None
     
     def writable(self):
-        if self.socket != None and not self.accepting:
-            return not self.connected
+        if self.socket != None:
+            if self.tls_handshake_stage == 2:
+                return True
+            if not self.accepting:
+                return not self.connected
         return False
     
     def handle_read_event(self):
         if self.socket == None:
             return
         
-        if self.accepting:
+        if self.tls_handshake_stage is not None:
+            self.tls_handshake()
+        elif self.accepting:
             self.accept_from_socket()
         elif not self.connected:
             self.did_connect()
@@ -420,7 +484,9 @@ class TCPSocket(object):
         if self.socket == None:
             return
         
-        if not self.connected and not self.accepting:
+        if self.tls_handshake_stage is not None:
+            self.tls_handshake()
+        elif not self.connected and not self.accepting:
             self.did_connect()
     
     def handle_except_event(self):
