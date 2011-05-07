@@ -288,7 +288,7 @@ class TCPSocket(object):
             self.socket.close()
             self.socket = None
         
-        if (self.connected or self.accepting) and hasattr(self.delegate, 'socket_did_disconnect'):
+        if (self.connected or self.accepted or self.accepting) and hasattr(self.delegate, 'socket_did_disconnect'):
             self.delegate.socket_did_disconnect(self, err)
         
         self.connected = False
