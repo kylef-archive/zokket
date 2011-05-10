@@ -437,7 +437,6 @@ class TCPSocket(object):
         try:
             return self.socket.getpeername()[1]
         except socket.error, e:
-            print e
             return -1
     
     def local_host(self):
