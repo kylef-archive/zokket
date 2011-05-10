@@ -400,8 +400,12 @@ class TCPSocket(object):
     # Writing
     
     def send(self, data):
+        if self.tls_handshake_stage is not None:
+            return
+
+        self.uploaded_bytes += len(data)
+
         try:
-            self.uploaded_bytes += len(data)
             if isinstance(self.socket, ssl.SSLSocket):
                 return self.socket.write(data)
             return self.socket.send(data)
@@ -432,8 +436,9 @@ class TCPSocket(object):
         
         try:
             return self.socket.getpeername()[1]
-        except socket.error:
-            return 0
+        except socket.error, e:
+            print e
+            return -1
     
     def local_host(self):
         if self.socket == None:
