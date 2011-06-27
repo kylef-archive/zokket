@@ -1,6 +1,7 @@
 import sys
 import zokket
 
+
 class TLSDelegate(object):
     def __init__(self):
         # Lets connect to duckduckgo.com
@@ -9,7 +10,7 @@ class TLSDelegate(object):
     # Socket delegate methods
 
     def socket_did_connect(self, sock, host, port):
-        sock.start_tls() # Start TLS
+        sock.start_tls()  # Start TLS
 
     def socket_did_secure(self, sock):
         print "Connected using %s, version %s, %s-bit.\n" % sock.tls_cipher()
@@ -17,7 +18,7 @@ class TLSDelegate(object):
         sock.send("HEAD / HTTP/1.0\r\n")
         sock.send("Host: duckduckgo.com\r\n")
         sock.send("\r\n")
-    
+
     def socket_read_data(self, sock, data):
         print "%s" % (data.strip())
 
