@@ -1,4 +1,5 @@
-# A example of wx and zokket, a simple echo server
+#!/usr/bin/env python2
+# An example of wx and zokket, a simple echo server
 
 import zokket
 import wx

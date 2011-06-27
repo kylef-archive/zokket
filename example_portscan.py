@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 import zokket
 
 PRIVILEGED_PORTRANGE = range(1, 1024)
