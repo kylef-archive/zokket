@@ -7,6 +7,7 @@ kwargs = {
     'name': 'zokket',
     'version': get_version(),
     'license': 'BSD',
+    'description': 'zokket is a asynchronous socket networking library for python',
     'author': 'Kyle Fuller',
     'author_email': 'inbox@kylefuller.co.uk',
     'packages': ['zokket'],
