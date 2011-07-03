@@ -70,4 +70,4 @@ class Runloop(object):
         [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
 
     def shutdown(self):
-        [s.close() for s in self.sockets if s.socket]
+        [s.close() for s in self.sockets]
