@@ -37,6 +37,9 @@ class TCPSocketDelegate(object):
     def socket_did_disconnect(self, sock, err=None):
         """
         A socket that was previously connected or listening has been closed.
+
+        Additionally an error on connecting could cause this delegate method
+        to be called and the exception will be passed.
         """
         pass
 
@@ -264,7 +267,7 @@ class TCPSocket(object):
                 if timeout:
                     self.connect_timeout = Timer(timeout, self.connection_timeout, False, (host, port), runloop=self.runloop)
                 return
-            raise e
+            return self.close(e)
 
         self.did_connect()
 
@@ -372,16 +375,16 @@ class TCPSocket(object):
         Disconnect or stop accepting.
         """
 
+        if (self.connected or self.accepted or self.accepting or err) and \
+                hasattr(self.delegate, 'socket_did_disconnect'):
+            self.delegate.socket_did_disconnect(self, err)
+
         if self.socket != None:
             if isinstance(self.socket, ssl.SSLSocket):
                 self.stop_tls()
 
             self.socket.close()
             self.socket = None
-
-        if (self.connected or self.accepted or self.accepting) and \
-                hasattr(self.delegate, 'socket_did_disconnect'):
-            self.delegate.socket_did_disconnect(self, err)
 
         self.connected = False
         self.accepting = False
