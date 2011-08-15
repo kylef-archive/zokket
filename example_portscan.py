@@ -8,7 +8,7 @@ REGISTERED_PORTRANGE = range(1024, 49151)
 
 class PortScanner(object):
     def __init__(self, target, portrange=PRIVILEGED_PORTRANGE, simultaneous_connections=100, timeout=0.5):
-        self.portrange = portrange
+        self.portrange = list(portrange)
         self.target = target
         self.timeout = timeout
 
@@ -23,12 +23,12 @@ class PortScanner(object):
         s.connect(self.target, self.portrange.pop(0), timeout=self.timeout)
 
     def socket_did_connect(self, sock, host, port):
-        print "Port %s Open." % (port)
+        print("Port {} Open.".format(port))
         sock.close()
         self.connect()
 
     def socket_connection_refused(self, sock, host, port):
-        print "Port %s Closed" % (port)
+        print("Port {} Closed".format(port))
         self.connect()
 
     def socket_connection_timeout(self, sock, host, port):
@@ -37,4 +37,4 @@ class PortScanner(object):
 if __name__ == '__main__':
     PortScanner('127.0.0.1')
     zokket.DefaultRunloop.run()
-    print "Portscan ended"
+    print("Portscan ended")

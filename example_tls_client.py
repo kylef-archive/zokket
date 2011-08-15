@@ -15,14 +15,14 @@ class TLSDelegate(object):
         sock.start_tls()  # Start TLS
 
     def socket_did_secure(self, sock):
-        print "Connected using %s, version %s, %s-bit.\n" % sock.tls_cipher()
+        print("Connected using {}, version {}, {}-bit.".format(*sock.tls_cipher()))
 
         sock.send("HEAD / HTTP/1.0\r\n")
         sock.send("Host: duckduckgo.com\r\n")
         sock.send("\r\n")
 
     def socket_read_data(self, sock, data):
-        print "%s" % (data.strip())
+        print(data.strip())
 
     def socket_did_disconnect(self, sock, err=None):
         sys.exit()

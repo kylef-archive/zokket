@@ -11,7 +11,7 @@ kwargs = {
     'author': 'Kyle Fuller',
     'author_email': 'inbox@kylefuller.co.uk',
     'packages': ['zokket'],
-    'download_url': 'http://github.com/kylef/zokket/zipball/%s' % get_version(),
+    'download_url': 'http://github.com/kylef/zokket/zipball/{}'.format(get_version()),
 }
 
 setup(**kwargs)

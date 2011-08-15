@@ -10,7 +10,7 @@ class TLSDelegate(object):
     # Socket delegate methods
 
     def socket_did_disconnect(self, sock, err=None):
-        print "Socket: Disconnected (%s)" % err
+        print "Socket: Disconnected ({})".format(err)
 
     def socket_will_connect(self, sock):
         # Start TLS using mycert.pem as our certificate.
@@ -21,7 +21,7 @@ class TLSDelegate(object):
         print "Socket is now secure"
 
     def socket_read_data(self, sock, data):
-        print "[%s] %s" % (sock, data.strip())
+        print "[{}] {}".format(sock, data.strip())
 
 if __name__ == '__main__':
     print "Note: This example requires a SSL certificate to be generated, the example uses mycert.pem"

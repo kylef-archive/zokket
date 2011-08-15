@@ -27,7 +27,7 @@ class WSGIRequestHandler(object):
             [command, path, version] = request_words
 
             if version[:5] != 'HTTP/':
-                self.send_error('400 BAD REQUEST', 'Bad request version (%s)' % version)
+                self.send_error('400 BAD REQUEST', 'Bad request version ({})'.format(version))
                 return
             self.version = version
         elif len(request_words) == 2:
@@ -35,7 +35,7 @@ class WSGIRequestHandler(object):
         elif not request_words:
             return
         else:
-            self.send_error('400 BAD REQUEST', 'Bad request syntax (%s)' % request_line)
+            self.send_error('400 BAD REQUEST', 'Bad request syntax ({})'.format(request_line))
             return
 
         self.environ = self.server.base_environ.copy()
@@ -100,8 +100,8 @@ class WSGIRequestHandler(object):
         self.socket.close()
 
     def send_response(self):
-        self.socket.send("%s %s\r\n" % (self.version, self.status))
-        self.socket.send("\r\n".join(['%s: %s' % header for header in self.response_headers]) + "\r\n\r\n")
+        self.socket.send("{} {}\r\n".format(self.version, self.status))
+        self.socket.send("\r\n".join(['{}: {}'.format(*header) for header in self.response_headers]) + "\r\n\r\n")
         self.socket.send("\n".join(self.data) + "\r\n\r\n")
 
 

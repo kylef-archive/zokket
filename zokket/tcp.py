@@ -11,15 +11,7 @@ except ImportError:
 from zokket.timers import Timer
 from zokket.runloop import DefaultRunloop
 
-if os.name == 'nt':
-    EWOULDBLOCK = 10035
-    EINPROGRESS = 10036
-    EALREADY = 10037
-    ECONNRESET = 10054
-    ENOTCONN = 10057
-else:
-    from errno import EALREADY, EINPROGRESS, EWOULDBLOCK, ECONNRESET, ENOTCONN
-
+import errno
 
 class SocketException(Exception):
     pass
@@ -141,7 +133,7 @@ class TCPSocket(object):
 
         self.read_until_data = None
         self.read_until_length = None
-        self.read_buffer = ''
+        self.read_buffer = bytes()
 
         self.uploaded_bytes = 0
         self.downloaded_bytes = 0
@@ -153,9 +145,9 @@ class TCPSocket(object):
 
     def __str__(self):
         if self.connected:
-            return '%s:%s' % (self.connected_host(), self.connected_port())
+            return '{}:{}'.format(self.connected_host(), self.connected_port())
         elif self.accepting:
-            return '%s:%s' % (self.local_host(), self.local_port())
+            return '{}:{}'.format(self.local_host(), self.local_port())
 
         return ''
 
@@ -262,8 +254,8 @@ class TCPSocket(object):
 
         try:
             self.socket.connect((host, port))
-        except socket.error, e:
-            if e[0] in (EINPROGRESS, EALREADY, EWOULDBLOCK):
+        except socket.error as e:
+            if e.errno in (errno.EINPROGRESS, errno.EALREADY, errno.EWOULDBLOCK):
                 if timeout:
                     self.connect_timeout = Timer(timeout, self.connection_timeout, False, (host, port), runloop=self.runloop)
                 return
@@ -287,8 +279,8 @@ class TCPSocket(object):
 
         try:
             self.socket.recv(0)
-        except socket.error, e:
-            if e[0] == 61:
+        except socket.error as e:
+            if e.errno == errno.ECONNREFUSED:
                 if hasattr(self.delegate, 'socket_connection_refused'):
                     self.delegate.socket_connection_refused(self, self.connecting_address[0], self.connecting_address[1])
 
@@ -310,15 +302,15 @@ class TCPSocket(object):
 
         try:
             self.socket.bind((host, port))
-        except socket.error, e:
-            if e[0] == 48:
+        except socket.error as e:
+            if e.errno == errno.EADDRINUSE:
                 self.close()
 
                 if hasattr(self.delegate, 'socket_address_in_use'):
                     self.delegate.socket_address_in_use(self, host, port)
 
                 return
-            elif e[0] == 13:
+            elif e.errno == errno.EACCES:
                 self.close()
 
                 if hasattr(self.delegate, 'socket_address_refused'):
@@ -360,7 +352,7 @@ class TCPSocket(object):
 
             if hasattr(self.delegate, 'socket_did_secure'):
                 self.delegate.socket_did_secure(self)
-        except ssl.SSLError, err:
+        except ssl.SSLError as err:
             if err.args[0] == ssl.SSL_ERROR_WANT_READ:
                 self.tls_handshake_stage = 1
             elif err.args[0] == ssl.SSL_ERROR_WANT_WRITE:
@@ -434,8 +426,8 @@ class TCPSocket(object):
             self.read_buffer += data
             self.downloaded_bytes += len(data)
             self.dequeue_buffer()
-        except socket.error, e:
-            if e[0] in (ECONNRESET, ENOTCONN):
+        except socket.error as e:
+            if e.errno in (errno.ECONNRESET, errno.ENOTCONN):
                 self.close()
 
     # Writing
@@ -450,8 +442,8 @@ class TCPSocket(object):
             if isinstance(self.socket, ssl.SSLSocket):
                 return self.socket.write(data)
             return self.socket.send(data)
-        except socket.error, e:
-            if e[0] == EWOULDBLOCK:
+        except socket.error as e:
+            if e.errno == errno.EWOULDBLOCK:
                 return 0
             raise e
 
@@ -477,7 +469,7 @@ class TCPSocket(object):
 
         try:
             return self.socket.getpeername()[1]
-        except socket.error, e:
+        except socket.error as e:
             return -1
 
     def local_host(self):

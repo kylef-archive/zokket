@@ -20,22 +20,22 @@ class EchoServerFrame(wx.Frame):
     # Socket delegate methods
 
     def socket_accepting(self, sock, host, port):
-        self.append_to_textbox("*** Listening on (%s)" % port)
+        self.append_to_textbox("*** Listening on ({})".format(port))
 
     def socket_address_in_use(self, sock, host, port):
-        self.append_to_textbox("*** Address in use (%s)" % port)
+        self.append_to_textbox("*** Address in use ({})".format(port))
 
     def socket_address_refused(self, sock, host, port):
-        self.append_to_textbox("*** Address refused (%s)" % port)
+        self.append_to_textbox("*** Address refused ({})".format(port))
 
     def socket_did_connect(self, sock, host, port):
-        self.append_to_textbox("*** Connected (%s:%s)" % (host, port))
+        self.append_to_textbox("*** Connected ({}:{})".format(host, port))
 
     def socket_did_disconnect(self, sock, err=None):
         self.append_to_textbox("*** Disconnected")
 
     def socket_read_data(self, sock, data):
-        self.append_to_textbox("[%s] %s" % (sock, data.strip()))
+        self.append_to_textbox("[{}] {}".format(sock, data.strip()))
         sock.send(data)  # Echo data back
 
 if __name__ == '__main__':
