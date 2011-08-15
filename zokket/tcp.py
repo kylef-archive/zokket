@@ -133,7 +133,8 @@ class TCPSocket(object):
 
         self.read_until_data = None
         self.read_until_length = None
-        self.read_buffer = bytes()
+        self.read_buffer = ''
+        self.buffer_type = 'utf-8'
 
         self.uploaded_bytes = 0
         self.downloaded_bytes = 0
@@ -423,7 +424,11 @@ class TCPSocket(object):
                 self.close()
                 return
 
-            self.read_buffer += data
+            if isinstance(data, bytes):
+                self.read_buffer += data.decode(self.buffer_type)
+            else:
+                self.read_buffer += data
+
             self.downloaded_bytes += len(data)
             self.dequeue_buffer()
         except socket.error as e:
@@ -437,6 +442,9 @@ class TCPSocket(object):
             return
 
         self.uploaded_bytes += len(data)
+
+        if not isinstance(data, bytes):
+            data = data.encode(self.buffer_type)
 
         try:
             if isinstance(self.socket, ssl.SSLSocket):
