@@ -3,10 +3,8 @@ try:
 except ImportError:
     from urllib import unquote
 
-import mimetools
-from io import StringIO
 import socket
-
+import email
 from zokket.tcp import TCPSocket
 
 
@@ -43,7 +41,7 @@ class WSGIRequestHandler(object):
             return
 
         self.environ = self.server.base_environ.copy()
-        self.headers = mimetools.Message(StringIO.StringIO("\r\n".join(lines)), 0)
+        self.headers = email.message_from_string("\r\n".join(lines))
         self.environ['SERVER_PROTOCOL'] = version
         self.environ['REQUEST_METHOD'] = command
 
@@ -54,27 +52,13 @@ class WSGIRequestHandler(object):
 
         self.environ['PATH_INFO'] = unquote(path)
         self.environ['QUERY_STRING'] = query
+        self.environ['CONTENT_TYPE'] = self.headers.get('Content-Type', '')
+        self.environ['CONTENT_LENGTH'] = self.headers.get('Content-Length', '')
 
-        if self.headers.typeheader is None:
-            self.environ['CONTENT_TYPE'] = self.headers.type
-        else:
-            self.environ['CONTENT_TYPE'] = self.headers.typeheader
-
-        length = self.headers.getheader('content-length')
-        if length:
-            self.environ['CONTENT_LENGTH'] = length
-
-        for h in self.headers.headers:
-            k, v = h.split(':', 1)
-            k = k.replace('-', '_').upper()
-            v = v.strip()
-            if k in self.environ:
-                continue  # skip content length, type,etc.
-            if 'HTTP_' + k in self.environ:
-                # comma-separate multiple headers
-                self.environ['HTTP_' + k] += ',' + v
-            else:
-                self.environ['HTTP_' + k] = v
+        for key, value in self.headers.items():
+            key = ('HTTP_' + key.upper().replace('-', '_'))
+            if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
+                self.environ[key] = value
 
         self.environ['REMOTE_HOST'] = self.socket.connected_host()
         self.environ['REMOTE_ADDR'] = self.socket.connected_host()
