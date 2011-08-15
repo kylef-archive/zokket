@@ -1,6 +1,10 @@
-import urllib
+try:
+    from urllib.parse import unquote
+except ImportError:
+    from urllib import unquote
+
 import mimetools
-import StringIO
+from io import StringIO
 import socket
 
 from zokket.tcp import TCPSocket
@@ -48,7 +52,7 @@ class WSGIRequestHandler(object):
         else:
             path, query = path, ''
 
-        self.environ['PATH_INFO'] = urllib.unquote(path)
+        self.environ['PATH_INFO'] = unquote(path)
         self.environ['QUERY_STRING'] = query
 
         if self.headers.typeheader is None:
