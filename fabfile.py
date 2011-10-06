@@ -3,7 +3,7 @@ from zokket import get_version
 
 @task
 def tag():
-    local('git tag {}'.formatget_version()))
+    local('git tag {}'.format(get_version()))
 
 @task
 def push():
