@@ -4,7 +4,7 @@ from zokket.timers import Timer
 from zokket.runloop import DefaultRunloop, Runloop
 from zokket.wsgi import WSGIServer
 
-VERSION = (1, 0, 0)
+VERSION = (1, 0, 1)
 
 def get_version():
     version = '{}.{}'.format(VERSION[0], VERSION[1])
