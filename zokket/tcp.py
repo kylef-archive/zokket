@@ -179,9 +179,8 @@ class TCPSocket(object):
     def configure(self):
         self.accepted = True
 
-        if hasattr(self.delegate, 'socket_will_connect'):
-            if not self.delegate.socket_will_connect(self):
-                self.close()
+        if not self.socket_will_connect():
+            self.close()
 
     def attach_to_runloop(self, runloop):
         self.runloop = runloop
@@ -243,8 +242,8 @@ class TCPSocket(object):
         socket_did_connect TCPSocketDelegate method will be called.
         """
 
-        if not self.delegate:
-            raise SocketException("Attempting to accept without a delegate. Set a delegate first.")
+        #if not self.delegate:
+        #    raise SocketException("Attempting to accept without a delegate. Set a delegate first.")
 
         if self.socket != None:
             raise SocketException("Attempting to accept while connected or accepting connections. Disconnect first.")
@@ -266,9 +265,7 @@ class TCPSocket(object):
 
     def connection_timeout(self, timer):
         self.close()
-
-        if hasattr(self.delegate, 'socket_connection_timeout'):
-            self.delegate.socket_connection_timeout(self, *timer.data)
+        self.socket_connection_timeout(*timer.data)
 
     def did_connect(self):
         self.connected = True
@@ -282,14 +279,11 @@ class TCPSocket(object):
             self.socket.recv(0)
         except socket.error as e:
             if e.errno == errno.ECONNREFUSED:
-                if hasattr(self.delegate, 'socket_connection_refused'):
-                    self.delegate.socket_connection_refused(self, self.connecting_address[0], self.connecting_address[1])
-
+                self.socket_connection_refused()
                 self.close()
                 return
 
-        if hasattr(self.delegate, 'socket_did_connect'):
-            self.delegate.socket_did_connect(self, self.connected_host(), self.connected_port())
+        self.socket_did_connect()
 
     def accept(self, host='', port=0):
         if not self.delegate:
@@ -306,25 +300,18 @@ class TCPSocket(object):
         except socket.error as e:
             if e.errno == errno.EADDRINUSE:
                 self.close()
-
-                if hasattr(self.delegate, 'socket_address_in_use'):
-                    self.delegate.socket_address_in_use(self, host, port)
-
+                self.socket_address_in_use(host, port)
                 return
             elif e.errno == errno.EACCES:
                 self.close()
-
-                if hasattr(self.delegate, 'socket_address_refused'):
-                    self.delegate.socket_address_refused(self, host, port)
-
+                self.socket_address_refused(host, port)
                 return
             raise e
 
         self.socket.listen(5)
         self.accepting = True
 
-        if hasattr(self.delegate, 'socket_accepting'):
-            self.delegate.socket_accepting(self, host, port)
+        self.socket_accepting(host, port)
 
     def accept_from_socket(self):
         client, address = self.socket.accept()
@@ -333,14 +320,10 @@ class TCPSocket(object):
         new_sock.socket = client
         new_sock.socket.setblocking(0)
 
-        if hasattr(self.delegate, 'socket_did_accept_new_socket'):
-            self.delegate.socket_did_accept_new_socket(self, new_sock)
+        self.socket_did_accept_new_socket(new_sock)
 
-        if hasattr(self.delegate, 'socket_wants_runloop_for_new_socket'):
-            new_sock.attach_to_runloop(self.delegate.socket_wants_runloop_for_new_socket(self, new_sock))
-        else:
-            new_sock.attach_to_runloop(self.runloop)
-
+        runloop = self.socket_wants_runloop_for_new_socket(new_sock)
+        new_sock.attach_to_runloop(runloop or self.runloop)
         new_sock.configure()
 
     def tls_handshake(self):
@@ -351,8 +334,7 @@ class TCPSocket(object):
             self.socket.do_handshake()
             self.tls_handshake_stage = None
 
-            if hasattr(self.delegate, 'socket_did_secure'):
-                self.delegate.socket_did_secure(self)
+            self.socket_did_secure()
         except ssl.SSLError as err:
             if err.args[0] == ssl.SSL_ERROR_WANT_READ:
                 self.tls_handshake_stage = 1
@@ -368,9 +350,8 @@ class TCPSocket(object):
         Disconnect or stop accepting.
         """
 
-        if (self.connected or self.accepted or self.accepting or err) and \
-                hasattr(self.delegate, 'socket_did_disconnect'):
-            self.delegate.socket_did_disconnect(self, err)
+        if (self.connected or self.accepted or self.accepting or err):
+            self.socket_did_disconnect(err)
 
         if self.socket != None:
             if isinstance(self.socket, ssl.SSLSocket):
@@ -536,3 +517,48 @@ class TCPSocket(object):
 
     def handle_except_event(self):
         pass
+
+    def socket_did_disconnect(self, err=None):
+        if hasattr(self.delegate, 'socket_did_disconnect'):
+            self.delegate.socket_did_disconnect(self, err)
+
+    def socket_did_accept_new_socket(self, new_sock):
+        if hasattr(self.delegate, 'socket_did_accept_new_socket'):
+            self.delegate.socket_did_accept_new_socket(self, new_sock)
+
+    def socket_wants_runloop_for_new_socket(self, new_sock):
+        if hasattr(self.delegate, 'socket_wants_runloop_for_new_socket'):
+            return self.delegate.socket_wants_runloop_for_new_socket(self, new_sock)
+
+    def socket_will_connect(self):
+        if hasattr(self.delegate, 'socket_will_connect'):
+            return self.delegate.socket_will_connect(self)
+        return True
+
+    def socket_connection_refused(self):
+        if hasattr(self.delegate, 'socket_connection_refused'):
+            self.delegate.socket_connection_refused(self, self.connecting_address[0], self.connecting_address[1])
+
+    def socket_did_connect(self):
+        if hasattr(self.delegate, 'socket_did_connect'):
+            self.delegate.socket_did_connect(self, self.connected_host(), self.connected_port())
+
+    def socket_connection_timeout(self, host, port):
+        if hasattr(self.delegate, 'socket_connection_timeout'):
+            self.delegate.socket_connection_timeout(self, host, port)
+
+    def socket_address_in_use(self, host, port):
+        if hasattr(self.delegate, 'socket_address_in_use'):
+            self.delegate.socket_address_in_use(self, host, port)
+
+    def socket_address_refused(self, host, port):
+        if hasattr(self.delegate, 'socket_address_refused'):
+            self.delegate.socket_address_refused(self, host, port)
+
+    def socket_accepting(self, host, port):
+        if hasattr(self.delegate, 'socket_accepting'):
+            self.delegate.socket_accepting(self, host, port)
+
+    def socket_did_secure(self):
+        if hasattr(self.delegate, 'socket_did_secure'):
+            self.delegate.socket_did_secure(self)
