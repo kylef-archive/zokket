@@ -56,10 +56,13 @@ class Runloop(object):
             while self.running:
                 self.run_network()
                 self.run_timers()
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             self.running = False
 
         self.shutdown()
+
+        while len(self.sockets):
+            self.run_network()
 
     def run_network(self):
         r = filter(lambda x: x.readable(), self.sockets)
