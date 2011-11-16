@@ -139,10 +139,11 @@ class TCPSocket(object):
         self.uploaded_bytes = 0
         self.downloaded_bytes = 0
 
-        if not runloop:
+        if runloop == None:
             runloop = DefaultRunloop.default()
 
-        self.attach_to_runloop(runloop)
+        if runloop:
+            self.attach_to_runloop(runloop)
 
     def __str__(self):
         if self.connected:
@@ -316,7 +317,7 @@ class TCPSocket(object):
     def accept_from_socket(self):
         client, address = self.socket.accept()
 
-        new_sock = self.__class__(self.delegate)
+        new_sock = self.__class__(self.delegate, runloop=False)
         new_sock.socket = client
         new_sock.socket.setblocking(0)
 
