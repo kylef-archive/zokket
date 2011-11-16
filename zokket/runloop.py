@@ -77,3 +77,18 @@ class Runloop(object):
 
     def shutdown(self):
         [s.close() for s in self.sockets]
+
+    def register_socket(self, socket):
+        if socket not in self.sockets:
+            self.sockets.append(socket)
+
+    def unregister_socket(self, socket):
+        self.sockets.remove(socket)
+
+    def update_socket(self, socket):
+        """
+        This is called when the state of a socket changes, when
+        socket.writable/readable may of changed.
+        """
+        pass
+

@@ -139,11 +139,7 @@ class TCPSocket(object):
         self.uploaded_bytes = 0
         self.downloaded_bytes = 0
 
-        if runloop == None:
-            runloop = DefaultRunloop.default()
-
-        if runloop:
-            self.attach_to_runloop(runloop)
+        self.runloop = runloop
 
     def __str__(self):
         if self.connected:
@@ -180,12 +176,21 @@ class TCPSocket(object):
     def configure(self):
         self.accepted = True
 
+        self.runloop.register_socket(self)
+
         if not self.socket_will_connect():
             self.close()
 
-    def attach_to_runloop(self, runloop):
-        self.runloop = runloop
-        self.runloop.sockets.append(self)
+    @property
+    def runloop(self):
+        if not self._runloop:
+            self._runloop = DefaultRunloop.default()
+
+        return self._runloop
+
+    @runloop.setter
+    def runloop(self, runloop):
+        self._runloop = runloop
 
     # TLS
 
@@ -253,6 +258,8 @@ class TCPSocket(object):
         self.socket.setblocking(0)
         self.connecting_address = (host, port)
 
+        self.runloop.register_socket(self)
+
         try:
             self.socket.connect((host, port))
         except socket.error as e:
@@ -270,6 +277,7 @@ class TCPSocket(object):
 
     def did_connect(self):
         self.connected = True
+        self.runloop.update_socket(self)
 
         if self.connect_timeout:
             self.connect_timeout.invalidate()
@@ -296,6 +304,8 @@ class TCPSocket(object):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(0)
 
+        self.runloop.register_socket(self)
+
         try:
             self.socket.bind((host, port))
         except socket.error as e:
@@ -311,6 +321,7 @@ class TCPSocket(object):
 
         self.socket.listen(5)
         self.accepting = True
+        self.runloop.update_socket(self)
 
         self.socket_accepting(host, port)
 
@@ -324,7 +335,7 @@ class TCPSocket(object):
         self.socket_did_accept_new_socket(new_sock)
 
         runloop = self.socket_wants_runloop_for_new_socket(new_sock)
-        new_sock.attach_to_runloop(runloop or self.runloop)
+        new_sock.runloop = runloop or self.runloop
         new_sock.configure()
 
     def tls_handshake(self):
@@ -334,13 +345,16 @@ class TCPSocket(object):
         try:
             self.socket.do_handshake()
             self.tls_handshake_stage = None
+            self.runloop.update_socket(self)
 
             self.socket_did_secure()
         except ssl.SSLError as err:
             if err.args[0] == ssl.SSL_ERROR_WANT_READ:
                 self.tls_handshake_stage = 1
+                self.runloop.update_socket(self)
             elif err.args[0] == ssl.SSL_ERROR_WANT_WRITE:
                 self.tls_handshake_stage = 2
+                self.runloop.update_socket(self)
             else:
                 raise
 
@@ -357,6 +371,8 @@ class TCPSocket(object):
         if self.socket != None:
             if isinstance(self.socket, ssl.SSLSocket):
                 self.stop_tls()
+
+            self.runloop.unregister_socket(self)
 
             self.socket.close()
             self.socket = None

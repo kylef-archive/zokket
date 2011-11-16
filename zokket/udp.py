@@ -15,19 +15,22 @@ class UDPSocket(object):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setblocking(0)
 
-        if not runloop:
-            runloop = DefaultRunloop.default()
-
         self.uploaded_bytes = 0
         self.downloaded_bytes = 0
 
-        self.attach_to_runloop(runloop)
-
-    # Configuration
-
-    def attach_to_runloop(self, runloop):
         self.runloop = runloop
-        self.runloop.sockets.append(self)
+        self.runloop.register_socket(self)
+
+    @property
+    def runloop(self):
+        if not self._runloop:
+            self._runloop = DefaultRunloop.default()
+
+        return self._runloop
+
+    @runloop.setter
+    def runloop(self, runloop):
+        self._runloop = runloop
 
     # Connecting / Writing
 
@@ -40,6 +43,8 @@ class UDPSocket(object):
 
     def close(self):
         if self.socket:
+            self.runloop.unregister_socket(self)
+
             self.socket.close()
             self.socket = None
 
