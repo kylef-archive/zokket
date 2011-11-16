@@ -127,9 +127,11 @@ class TCPSocket(object):
         self.connected = False
         self.accepting = False
         self.accepted = False
+        self.closing = False
         self.connect_timeout = None
 
         self.tls_handshake_stage = None
+        self.tls_shutdown = False
 
         self.read_until_data = None
         self.read_until_length = None
@@ -215,10 +217,31 @@ class TCPSocket(object):
         return True
 
     def stop_tls(self):
-        if not self.has_tls():
-            return
+        self.tls_shutdown = True
 
-        self.socket = self.socket.unwrap()
+        try:
+            self.socket = self.socket.unwrap()
+        except ssl.SSLError as err:
+            if err.args[0] == ssl.SSL_ERROR_WANT_READ:
+                self.tls_handshake_stage = 1
+                self.runloop.update_socket(self)
+                return False
+            elif err.args[0] == ssl.SSL_ERROR_WANT_WRITE:
+                self.tls_handshake_stage = 2
+                self.runloop.update_socket(self)
+                return False
+            else:
+                raise
+
+        self.tls_shutdown = False
+        self.tls_handshake_stage = None
+
+        if self.closing:
+            self.close()
+        else:
+            self.runloop.update_socket(self)
+
+        return True
 
     def tls_cipher(self):
         if not self.has_tls():
@@ -370,13 +393,16 @@ class TCPSocket(object):
 
         if self.socket != None:
             if isinstance(self.socket, ssl.SSLSocket):
-                self.stop_tls()
+                if not self.stop_tls():
+                    self.closing = True
+                    return
 
             self.runloop.unregister_socket(self)
 
             self.socket.close()
             self.socket = None
 
+        self.closing = False
         self.connected = False
         self.accepting = False
 
@@ -514,7 +540,10 @@ class TCPSocket(object):
             return
 
         if self.tls_handshake_stage is not None:
-            self.tls_handshake()
+            if self.tls_shutdown:
+                self.stop_tls()
+            else:
+                self.tls_handshake()
         elif self.accepting:
             self.accept_from_socket()
         elif not self.connected:
@@ -528,7 +557,10 @@ class TCPSocket(object):
             return
 
         if self.tls_handshake_stage is not None:
-            self.tls_handshake()
+            if self.tls_shutdown:
+                self.stop_tls()
+            else:
+                self.tls_handshake()
         elif not self.connected and not self.accepting:
             self.did_connect()
 
