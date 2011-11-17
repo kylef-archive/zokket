@@ -24,7 +24,7 @@ class DefaultRunloop(object):
     @classmethod
     def default(cls):
         if not hasattr(cls, '_runloop'):
-            cls.set(Runloop)
+            cls.set(SelectRunloop)
         return cls._runloop
 
     @classmethod
@@ -100,15 +100,7 @@ class Runloop(BaseRunloop, TimerRunloopMixin):
             self.run_network()
 
     def run_network(self):
-        r = filter(lambda x: x.readable(), self.sockets)
-        w = filter(lambda x: x.writable(), self.sockets)
-        e = filter(lambda x: x.socket != None, self.sockets)
-
-        (rlist, wlist, xlist) = select.select(r, w, e, self.timer_timeout())
-
-        [s.handle_except_event() for s in xlist]
-        [s.handle_read_event() for s in rlist]
-        [s.handle_write_event() for s in wlist]
+        raise NotImplemented
 
     def shutdown(self):
         [s.close() for s in self.sockets]
@@ -120,6 +112,19 @@ class Runloop(BaseRunloop, TimerRunloopMixin):
     def unregister_socket(self, socket):
         if socket in self.sockets:
             self.sockets.remove(socket)
+
+class SelectRunloop(Runloop):
+    def run_network(self):
+        r = filter(lambda x: x.readable(), self.sockets)
+        w = filter(lambda x: x.writable(), self.sockets)
+        e = filter(lambda x: x.socket != None, self.sockets)
+
+        (rlist, wlist, xlist) = select.select(r, w, e, self.timer_timeout())
+
+        [s.handle_except_event() for s in xlist]
+        [s.handle_read_event() for s in rlist]
+        [s.handle_write_event() for s in wlist]
+
 
 class PollRunloop(Runloop):
     def __init__(self):
