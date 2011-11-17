@@ -10,21 +10,26 @@ class Timer(object):
         self.data = data
         self.runloop = None
         self.update_timeout()
+        self.runloop = runloop
 
-        if not runloop:
-            runloop = DefaultRunloop.default()
+        self.runloop.register_timer(self)
 
-        self.attach_to_runloop(runloop)
+    @property
+    def runloop(self):
+        if not self._runloop:
+            self._runloop = DefaultRunloop.default()
+
+        return self._runloop
+
+    @runloop.setter
+    def runloop(self, runloop):
+        self._runloop = runloop
 
     def update_timeout(self):
         self.fire_at = time.time() + self.interval
 
     def timeout(self):
         return self.fire_at - time.time()
-
-    def attach_to_runloop(self, runloop):
-        self.runloop = runloop
-        self.runloop.timers.append(self)
 
     def fire(self):
         self.callback(self)
@@ -42,7 +47,4 @@ class Timer(object):
         self.repeat = False
         self.fite_at = None
 
-        try:
-            self.runloop.timers.remove(self)
-        except ValueError:
-            return
+        self.runloop.unregister_timer(self)

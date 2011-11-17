@@ -31,14 +31,22 @@ class DefaultRunloop(object):
     def abort(cls):
         cls.default().running = False
 
-
-class Runloop(object):
+class TimerRunloopMixin(object):
     def __init__(self):
-        self.sockets = []
         self.timers = []
-        self.running = False
 
-    def timeout(self):
+    def register_timer(self, timer):
+        if timer not in self.timers:
+            self.timers.append(timer)
+
+    def unregister_timer(self, timer):
+        if timer in self.timers:
+            self.timers.remove(timer)
+
+    def run_timers(self):
+        [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
+
+    def timer_timeout(self):
         try:
             runtimes = [timer.timeout() for timer in self.timers]
             runtimes.sort()
@@ -48,6 +56,12 @@ class Runloop(object):
             return timeout
         except:
             return 180
+
+class Runloop(TimerRunloopMixin):
+    def __init__(self):
+        super(Runloop, self).__init__()
+        self.sockets = []
+        self.running = False
 
     def run(self):
         self.running = True
@@ -69,14 +83,11 @@ class Runloop(object):
         w = filter(lambda x: x.writable(), self.sockets)
         e = filter(lambda x: x.socket != None, self.sockets)
 
-        (rlist, wlist, xlist) = select.select(r, w, e, self.timeout())
+        (rlist, wlist, xlist) = select.select(r, w, e, self.timer_timeout())
 
         [s.handle_except_event() for s in xlist]
         [s.handle_read_event() for s in rlist]
         [s.handle_write_event() for s in wlist]
-
-    def run_timers(self):
-        [timer.execute() for timer in self.timers if timer.timeout() <= 0.0]
 
     def shutdown(self):
         [s.close() for s in self.sockets]
