@@ -1,12 +1,5 @@
 import select
-
-try:
-    from thread import start_new_thread
-except ImportError:
-    import threading
-
-    def start_new_thread(self, callback, args, kwargs):
-        threading.Thread(target=callback, args=args, kwargs=kwargs).start()
+import threading
 
 class DefaultRunloop(object):
     @classmethod
@@ -15,7 +8,7 @@ class DefaultRunloop(object):
 
     @classmethod
     def run_in_new_thread(cls):
-        return start_new_thread(cls.default().run, (), {})
+        return threading.Thread(target=cls.default().run, args=(), kwargs={}).start()
 
     @classmethod
     def run(cls):
