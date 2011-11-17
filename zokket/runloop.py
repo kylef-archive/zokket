@@ -31,6 +31,27 @@ class DefaultRunloop(object):
     def abort(cls):
         cls.default().running = False
 
+class BaseRunloop(object):
+    @classmethod
+    def set_default(cls):
+        DefaultRunloop.set(cls)
+
+    def run(self):
+        raise NotImplemented
+
+    def register_socket(self, socket):
+        return
+
+    def unregister_socket(self, socket):
+        return
+
+    def update_socket(self, socket):
+        """
+        This is called when the state of a socket changes, when
+        socket.writable/readable may of changed.
+        """
+        return
+
 class TimerRunloopMixin(object):
     def __init__(self):
         self.timers = []
@@ -57,7 +78,7 @@ class TimerRunloopMixin(object):
         except:
             return 180
 
-class Runloop(TimerRunloopMixin):
+class Runloop(BaseRunloop, TimerRunloopMixin):
     def __init__(self):
         super(Runloop, self).__init__()
         self.sockets = []
@@ -97,12 +118,51 @@ class Runloop(TimerRunloopMixin):
             self.sockets.append(socket)
 
     def unregister_socket(self, socket):
-        self.sockets.remove(socket)
+        if socket in self.sockets:
+            self.sockets.remove(socket)
+
+class PollRunloop(Runloop):
+    def __init__(self):
+        super(PollRunloop, self).__init__()
+        self.poll = select.poll()
+
+    def socket_for_fd(self, fd):
+        for socket in self.sockets:
+            if socket == fd:
+                return socket
+
+    def run_network(self):
+        for fd, flag in self.poll.poll():
+            socket = self.socket_for_fd(fd)
+            if socket is None:
+                continue
+
+            if flag & (select.POLLIN | select.POLLPRI):
+                socket.handle_read_event()
+            elif flag & select.POLLOUT:
+                socket.handle_write_event()
+            elif flag & select.POLLERR:
+                socket.handle_except_event()
+
+    def eventmask(self, socket):
+        mask = select.POLLERR | select.POLLHUP | select.POLLPRI
+
+        if socket.writable():
+            mask = select.POLLOUT | mask
+
+        if socket.readable():
+            mask = select.POLLIN | mask
+
+        return mask
+
+    def register_socket(self, socket):
+        super(PollRunloop, self).register_socket(socket)
+        self.poll.register(socket, self.eventmask(socket))
 
     def update_socket(self, socket):
-        """
-        This is called when the state of a socket changes, when
-        socket.writable/readable may of changed.
-        """
-        pass
+        super(PollRunloop, self).update_socket(socket)
+        self.poll.modify(socket, self.eventmask(socket))
 
+    def unregister_socket(self, socket):
+        super(PollRunloop, self).unregister_socket(socket)
+        self.poll.unregister(socket)
