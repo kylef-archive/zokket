@@ -1,5 +1,6 @@
-from PyQt4.QtCore import QObject, QSocketNotifier, SIGNAL
+from PyQt4.QtCore import QObject, QSocketNotifier, SIGNAL, QBasicTimer
 from zokket.runloop import DefaultRunloop
+
 
 class QtRunloop(QObject):
     @classmethod
@@ -9,6 +10,29 @@ class QtRunloop(QObject):
     def __init__(self):
         super(QtRunloop, self).__init__()
         self.sockets = []
+        self.timers = []
+
+    # timers
+
+    def register_timer(self, timer):
+        self.timers.append(timer)
+
+        timer.qtimer = QBasicTimer()
+        timer.qtimer.start(timer.interval * 1000, self)
+
+    def unregister_timer(self, timer):
+        if hasattr(timer, 'qtimer') and timer.qtimer:
+            timer.qtimer.stop()
+            timer.qtimer = None
+
+        self.timers.remove(timer)
+
+    def timerEvent(self, event):
+        for timer in self.timers:
+            if timer.qtimer.timerId() == event.timerId():
+                return timer.execute()
+
+    # sockets
 
     def register_socket(self, socket):
         if socket not in self.sockets:
