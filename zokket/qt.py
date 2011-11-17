@@ -4,13 +4,22 @@ from zokket.runloop import DefaultRunloop
 
 class QtRunloop(QObject):
     @classmethod
-    def set_default(cls):
+    def set_default(cls, app=None):
         DefaultRunloop.set(cls)
+
+        if app:
+            DefaultRunloop.default().set_application(app)
 
     def __init__(self):
         super(QtRunloop, self).__init__()
         self.sockets = []
         self.timers = []
+
+    def set_application(self, app):
+        self.connect(app, SIGNAL('aboutToQuit()'), self.shutdown)
+
+    def shutdown(self):
+        [s.close() for s in self.sockets]
 
     # timers
 
