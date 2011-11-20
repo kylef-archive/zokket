@@ -22,10 +22,14 @@ class UDPSocket(object):
         self.runloop.register_socket(self)
 
     def __eq__(self, other):
-        if other == self.fileno():
+        if self.socket is not None and other == self.fileno():
             return True
 
-        return super(UDPSocket, self).__eq__(other)
+        if id(self) == id(other):
+            return True
+
+        return False
+
 
     @property
     def runloop(self):

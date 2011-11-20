@@ -174,10 +174,13 @@ class TCPSocket(object):
         return (self.socket != None) and self.connected or self.accepting
 
     def __eq__(self, other):
-        if other == self.fileno():
+        if self.socket is not None and other == self.fileno():
             return True
 
-        return super(TCPSocket, self).__eq__(other)
+        if id(self) == id(other):
+            return True
+
+        return False
 
     # Configuration
 
