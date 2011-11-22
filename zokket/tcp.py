@@ -360,7 +360,7 @@ class TCPSocket(object):
     def accept_from_socket(self):
         client, address = self.socket.accept()
 
-        new_sock = self.__class__(self.delegate, runloop=False)
+        new_sock = self.__class__(self.delegate)
         new_sock.socket = client
         new_sock.socket.setblocking(0)
 
