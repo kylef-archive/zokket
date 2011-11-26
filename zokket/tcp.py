@@ -422,26 +422,30 @@ class TCPSocket(object):
             self.delegate.socket_read_data(self, data)
 
     def dequeue_buffer(self):
-        if self.read_until_data != None:
-            index = self.read_buffer.find(self.read_until_data)
+        while self.read_buffer:
+            if self.read_until_data != None:
+                index = self.read_buffer.find(self.read_until_data)
 
-            if index != -1:
+                if index == -1:
+                    break
+
                 read_until_data_length = len(self.read_until_data)
                 data = self.read_buffer[:index + read_until_data_length]
                 self.read_buffer = self.read_buffer[index + read_until_data_length:]
 
-                self.read_data(data)
-                self.dequeue_buffer()
-        elif self.read_until_length != None:
-            if len(self.read_buffer) >= self.read_until_length:
+                yield data
+            elif self.read_until_length != None:
+                if self.read_until_length > len(self.read_buffer):
+                    break
+
                 data = self.read_buffer[:self.read_until_length]
                 self.read_buffer = self.read_buffer[self.read_until_length:]
 
-                self.read_data(data)
-                self.dequeue_buffer()
-        else:
-            self.read_data(self.read_buffer)
-            self.read_buffer = ''
+                yield data
+            else:
+                data = self.read_buffer
+                self.read_buffer = ''
+                yield data
 
     def bytes_availible(self):
         if self.socket == None:
@@ -463,7 +467,10 @@ class TCPSocket(object):
                 self.read_buffer += data
 
             self.downloaded_bytes += len(data)
-            self.dequeue_buffer()
+
+            for data in self.dequeue_buffer():
+                self.read_data(data)
+
         except socket.error as e:
             if e.errno in (errno.ECONNRESET, errno.ENOTCONN):
                 self.close()
