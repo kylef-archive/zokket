@@ -135,7 +135,7 @@ class TCPSocket(object):
 
         self.read_until_data = None
         self.read_until_length = None
-        self.read_buffer = ''
+        self.read_buffer = bytes()
         self.buffer_type = 'utf-8'
 
         self.uploaded_bytes = 0
@@ -444,7 +444,7 @@ class TCPSocket(object):
                 yield data
             else:
                 data = self.read_buffer
-                self.read_buffer = ''
+                self.read_buffer = bytes()
                 yield data
 
     def bytes_availible(self):
@@ -461,14 +461,13 @@ class TCPSocket(object):
                 self.close()
                 return
 
-            if isinstance(data, bytes):
-                self.read_buffer += data.decode(self.buffer_type)
-            else:
-                self.read_buffer += data
-
+            self.read_buffer += data
             self.downloaded_bytes += len(data)
 
             for data in self.dequeue_buffer():
+                if self.buffer_type:
+                    data = data.decode(self.buffer_type)
+
                 self.read_data(data)
 
         except socket.error as e:
