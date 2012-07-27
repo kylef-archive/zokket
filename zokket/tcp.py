@@ -456,11 +456,13 @@ class TCPSocket(object):
                 data = self.socket.read(8192)
             else:
                 data = self.socket.recv(8192)
+        except socket.error as e:
+            if e.errno in (errno.ECONNRESET, errno.ENOTCONN):
+                data = None
 
-            if not data:
-                self.close()
-                return
-
+        if not data:
+            self.close()
+        else:
             self.read_buffer += data
             self.downloaded_bytes += len(data)
 
@@ -469,10 +471,6 @@ class TCPSocket(object):
                     data = data.decode(self.buffer_type)
 
                 self.read_data(data)
-
-        except socket.error as e:
-            if e.errno in (errno.ECONNRESET, errno.ENOTCONN):
-                self.close()
 
     # Writing
 
