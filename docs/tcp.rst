@@ -6,3 +6,6 @@ TCP
 .. autoclass:: TCPSocket
     :members:
 
+.. autoclass:: TCPSocketDelegate
+    :members:
+
