@@ -459,6 +459,7 @@ class TCPSocket(object):
         except socket.error as e:
             if e.errno in (errno.ECONNRESET, errno.ENOTCONN):
                 data = None
+            return
 
         if not data:
             self.close()
